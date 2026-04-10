@@ -1,39 +1,39 @@
 # Apache DevLake Jira Tempo Plugin
 
-Plugin DevLake per fare ingest dei worklog da Jira Tempo (Tempo Timesheets).
+DevLake plugin for ingesting worklogs from Jira Tempo (Tempo Timesheets).
 
-## Struttura
+## Structure
 
 ```
 plugins/tempo/
-├── impl/impl.go           # Plugin entrypoint
-├── api/                   # REST endpoints
-│   ├── connection.go     # Connection CRUD
-│   ├── scope.go          # Team scopes
-│   ├── scope_config.go   # Scope config
-│   ├── remote.go         # Remote scopes
-│   ├── init.go           # Helpers initialization
-│   └── blueprint_v200.go # Pipeline plan
+├── impl/impl.go              # Plugin entrypoint
+├── api/                      # REST endpoints
+│   ├── connection.go          # Connection CRUD
+│   ├── scope.go              # Team scopes
+│   ├── scope_config.go       # Scope config
+│   ├── remote.go             # Remote scopes
+│   ├── init.go               # Helpers initialization
+│   └── blueprint_v200.go     # Pipeline plan
 ├── models/
-│   ├── connection.go     # TempoConnection, TempoScopeConfig
-│   ├── team.go           # TempoTeam
-│   ├── worklog.go        # TempoWorklog
-│   └── migrationscripts/  # Database migrations
+│   ├── connection.go         # TempoConnection, TempoScopeConfig
+│   ├── team.go               # TempoTeam
+│   ├── worklog.go            # TempoWorklog
+│   └── migrationscripts/      # Database migrations
 ├── tasks/
-│   ├── tasks.go          # SubTaskMetas
-│   ├── api_client.go     # Tempo API client
-│   ├── team_collector.go # Team collector
-│   ├── team_extractor.go # Team extractor
+│   ├── tasks.go              # SubTaskMetas
+│   ├── api_client.go         # Tempo API client
+│   ├── team_collector.go     # Team collector
+│   ├── team_extractor.go    # Team extractor
 │   ├── worklog_collector.go  # Worklog collector
 │   ├── worklog_extractor.go  # Worklog extractor
 │   └── worklog_convertor.go  # Worklog domain converter
 └── e2e/
-    └── worklog_test.go    # E2E tests
+    └── worklog_test.go       # E2E tests
 ```
 
-## Configurazione
+## Configuration
 
-| Campo | Descrizione |
+| Field | Description |
 |-------|-------------|
 | name | "tempo" |
 | connection | Bearer token (ApiKey) |
@@ -41,7 +41,7 @@ plugins/tempo/
 
 ## Domain Mapping
 
-| Campo Tempo | Campo DevLake |
+| Tempo Field | DevLake Field |
 |-------------|---------------|
 | tempoWorklogId | id = "tempo:TempoWorklog:{TempoWorklogId}" |
 | IssueId | issue_id (via jira:JiraIssues:{ConnectionId}:{IssueId}) |
@@ -51,7 +51,7 @@ plugins/tempo/
 
 ## API Endpoints
 
-| Endpoint | Descrizione |
+| Endpoint | Description |
 |----------|-------------|
 | GET /worklogs | Worklogs in bulk (filter: project, issueId, from, to, updatedFrom) |
 | GET /teams | Tempo teams |
@@ -61,7 +61,7 @@ Base: `https://api.tempo.io/4`
 
 Auth: Bearer token in header
 
-## Sviluppo
+## Development
 
 ### Setup
 
@@ -77,21 +77,21 @@ cd ~/Projects/apache-devlake/backend
 go build ./plugins/tempo/...
 ```
 
-### Test locale
+### Local Testing
 
 ```bash
 # Start MySQL
 docker run -d --name devlake-mysql -e MYSQL_ROOT_PASSWORD=root -p 3306:3306 mysql:8.0
 
-# Configura .env
+# Configure .env
 cp .env.example .env
 
-# Build e run DevLake
+# Build and run DevLake
 go build ./...
 cd cmd && ./devlake
 ```
 
-### Riferimenti
+### References
 
 - [DevelopmentManual.md](https://github.com/apache/incubator-devlake/blob/main/DevelopmentManual.md) in backend/
 - `plugins/jira/` - pattern reference

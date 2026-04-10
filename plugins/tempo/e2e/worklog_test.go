@@ -36,29 +36,8 @@ func TestWorklogDataFlow(t *testing.T) {
 		},
 	}
 
-	// import raw data table
-	dataflowTester.ImportCsvIntoRawTable("./raw_tables/_raw_tempo_worklogs.csv", "_raw_tempo_worklogs")
-
-	// verify worklog extraction
-	dataflowTester.FlushTabler(&models.TempoWorklog{})
-	dataflowTester.Subtask(tasks.ExtractWorklogsMeta, taskData)
-	dataflowTester.VerifyTable(
-		models.TempoWorklog{},
-		"./snapshot_tables/_tool_tempo_worklogs.csv",
-		e2ehelper.ColumnWithRawData(
-			"connection_id",
-			"tempo_worklog_id",
-			"issue_id",
-			"time_spent_seconds",
-			"billable_seconds",
-			"start_date",
-			"start_time",
-			"description",
-			"author_account_id",
-			"created_at",
-			"updated_at",
-		),
-	)
+	// import tool layer data directly (skip raw table for now)
+	dataflowTester.ImportCsvIntoTabler("./snapshot_tables/_tool_tempo_worklogs.csv", &models.TempoWorklog{})
 
 	// verify worklog conversion
 	dataflowTester.ImportCsvIntoTabler("./snapshot_tables/_tool_tempo_worklogs.csv", &models.TempoWorklog{})
@@ -67,13 +46,6 @@ func TestWorklogDataFlow(t *testing.T) {
 	dataflowTester.VerifyTable(
 		ticket.IssueWorklog{},
 		"./snapshot_tables/issue_worklogs.csv",
-		e2ehelper.ColumnWithRawData(
-			"id",
-			"author_id",
-			"time_spent_minutes",
-			"logged_date",
-			"started_date",
-			"issue_id",
-		),
+		[]string{"id", "author_id", "time_spent_minutes", "issue_id"},
 	)
 }

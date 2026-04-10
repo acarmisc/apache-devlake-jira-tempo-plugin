@@ -35,8 +35,10 @@ var ExtractWorklogsMeta = plugin.SubTaskMeta{
 }
 
 type TempoWorklogResponse struct {
-	TempoWorklogId   int64  `json:"tempoWorklogId"`
-	IssueId          int64  `json:"issueId"`
+	TempoWorklogId int64 `json:"tempoWorklogId"`
+	Issue          struct {
+		Id int64 `json:"id"`
+	} `json:"issue"`
 	IssueKey         string `json:"issueKey"`
 	TimeSpentSeconds int    `json:"timeSpentSeconds"`
 	BillableSeconds  int    `json:"billableSeconds"`
@@ -69,7 +71,7 @@ func ExtractWorklogs(taskCtx plugin.SubTaskContext) errors.Error {
 			worklog := &models.TempoWorklog{
 				ConnectionId:     data.Options.ConnectionId,
 				TempoWorklogId:   apiWorklog.TempoWorklogId,
-				IssueId:          apiWorklog.IssueId,
+				IssueId:          apiWorklog.Issue.Id,
 				TimeSpentSeconds: apiWorklog.TimeSpentSeconds,
 				BillableSeconds:  apiWorklog.BillableSeconds,
 				StartDate:        apiWorklog.StartDate,

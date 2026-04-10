@@ -111,6 +111,10 @@ func ConvertWorklogs(taskCtx plugin.SubTaskContext) errors.Error {
 func buildIssueIdMapping(db dal.Dal, connectionId uint64) (map[int64]string, errors.Error) {
 	mapping := make(map[int64]string)
 
+	if !db.HasTable("_tool_jira_issues") {
+		return mapping, nil
+	}
+
 	clauses := []dal.Clause{
 		dal.Select("issue_id"),
 		dal.From("_tool_jira_issues"),

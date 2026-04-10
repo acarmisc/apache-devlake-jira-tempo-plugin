@@ -19,12 +19,12 @@
 import { DOC_URL } from '@/release';
 import { IPluginConfig } from '@/types';
 
-import Icon from './assets/icon.svg?react';
+import Icon from './assets/icon.png';
 
 export const TempoConfig: IPluginConfig = {
   plugin: 'tempo',
   name: 'Tempo',
-  icon: ({ color }) => <Icon fill={color} />,
+  icon: () => <img src={Icon} style={{ width: '24px', height: '24px' }} />,
   sort: 20,
   connection: {
     docLink: 'https://devlake.apache.org/docs/Configuration/Tempo',

@@ -29,10 +29,12 @@ const (
 
 // TempoOptions holds the options for the Tempo plugin
 type TempoOptions struct {
-	ConnectionId  uint64                  `mapstructure:"connectionId" json:"connectionId"`
-	ScopeConfigId uint64                  `mapstructure:"scopeConfigId" json:"scopeConfigId"`
+	ConnectionId  uint64                   `mapstructure:"connectionId" json:"connectionId"`
+	ScopeConfigId uint64                   `mapstructure:"scopeConfigId" json:"scopeConfigId"`
 	ScopeConfig   *models.TempoScopeConfig `mapstructure:"scopeConfig" json:"scopeConfig"`
 	TeamId        int64                    `mapstructure:"teamId" json:"teamId"`
+	FromDate      string                   `mapstructure:"fromDate" json:"fromDate"`
+	ToDate        string                   `mapstructure:"toDate" json:"toDate"`
 }
 
 // TempoTaskData holds the data for a Tempo task

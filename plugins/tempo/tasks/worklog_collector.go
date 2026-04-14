@@ -19,6 +19,7 @@ package tasks
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -41,7 +42,6 @@ var CollectWorklogsMeta = plugin.SubTaskMeta{
 func CollectWorklogs(taskCtx plugin.SubTaskContext) errors.Error {
 	data := taskCtx.GetData().(*TempoTaskData)
 
-	// Create stateful API collector for incremental collection
 	apiCollector, err := api.NewStatefulApiCollector(api.RawDataSubTaskArgs{
 		Ctx: taskCtx,
 		Params: models.TempoApiParams{
@@ -53,7 +53,11 @@ func CollectWorklogs(taskCtx plugin.SubTaskContext) errors.Error {
 		return err
 	}
 
-	// Initialize the collector with the API client
+	urlTemplate := "worklogs"
+	if data.Options.TeamId != 0 {
+		urlTemplate = fmt.Sprintf("worklogs/team/%d", data.Options.TeamId)
+	}
+
 	err = apiCollector.InitCollector(api.ApiCollectorArgs{
 		RawDataSubTaskArgs: api.RawDataSubTaskArgs{
 			Ctx: taskCtx,
@@ -62,11 +66,9 @@ func CollectWorklogs(taskCtx plugin.SubTaskContext) errors.Error {
 			},
 			Table: RAW_WORKLOG_TABLE,
 		},
-		ApiClient: data.ApiClient,
-		// Tempo worklogs endpoint
-		UrlTemplate: "worklogs",
-		// Pagination: offset/limit with max 1000
-		PageSize: 1000,
+		ApiClient:   data.ApiClient,
+		UrlTemplate: urlTemplate,
+		PageSize:    1000,
 		GetTotalPages: func(res *http.Response, args *api.ApiCollectorArgs) (int, errors.Error) {
 			var response struct {
 				Metadata struct {
@@ -79,13 +81,11 @@ func CollectWorklogs(taskCtx plugin.SubTaskContext) errors.Error {
 			if err := api.UnmarshalResponse(res, &response); err != nil {
 				return 0, err
 			}
-			// Calculate total pages based on metadata
 			totalPages := (response.Metadata.Total + args.PageSize - 1) / args.PageSize
 			return totalPages, nil
 		},
 		Query: func(reqData *api.RequestData) (url.Values, errors.Error) {
 			query := url.Values{}
-			// Add pagination query params
 			pager := reqData.Pager
 			if pager == nil {
 				pager = &api.Pager{Page: 1, Skip: 0, Size: 1000}
@@ -93,10 +93,23 @@ func CollectWorklogs(taskCtx plugin.SubTaskContext) errors.Error {
 			query.Set("offset", strconv.Itoa(pager.Skip))
 			query.Set("limit", strconv.Itoa(pager.Size))
 
-			// Add date filters for incremental collection
-			if apiCollector.IsIncremental() && apiCollector.GetSince() != nil {
-				since := apiCollector.GetSince()
-				query.Set("updatedFrom", since.Format(time.RFC3339))
+			if data.Options.TeamId != 0 {
+				fromDate := data.Options.FromDate
+				toDate := data.Options.ToDate
+				if fromDate == "" {
+					since := time.Now().AddDate(0, 0, -90)
+					fromDate = since.Format("2006-01-02")
+				}
+				if toDate == "" {
+					toDate = time.Now().Format("2006-01-02")
+				}
+				query.Set("from", fromDate)
+				query.Set("to", toDate)
+			} else {
+				if apiCollector.IsIncremental() && apiCollector.GetSince() != nil {
+					since := apiCollector.GetSince()
+					query.Set("updatedFrom", since.Format(time.RFC3339))
+				}
 			}
 
 			return query, nil

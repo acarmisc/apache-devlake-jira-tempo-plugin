@@ -20,6 +20,7 @@ package tasks
 import (
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/apache/incubator-devlake/core/dal"
 	"github.com/apache/incubator-devlake/core/errors"
@@ -85,6 +86,16 @@ func ConvertWorklogs(taskCtx plugin.SubTaskContext) errors.Error {
 			domainWorklogId := fmt.Sprintf("tempo:TempoWorklog:%d", tempoWorklog.TempoWorklogId)
 			timeSpentMinutes := tempoWorklog.TimeSpentSeconds / 60
 
+			var startedDate time.Time
+			if tempoWorklog.StartDate != "" && tempoWorklog.StartTime != "" {
+				startedDate, _ = time.Parse("2006-01-02 15:04:05", tempoWorklog.StartDate+" "+tempoWorklog.StartTime)
+			}
+
+			var loggedDate time.Time
+			if tempoWorklog.CreatedAt != "" {
+				loggedDate, _ = time.Parse(time.RFC3339, tempoWorklog.CreatedAt)
+			}
+
 			worklog := &ticket.IssueWorklog{
 				DomainEntity: domainlayer.DomainEntity{
 					Id: domainWorklogId,
@@ -92,8 +103,8 @@ func ConvertWorklogs(taskCtx plugin.SubTaskContext) errors.Error {
 				IssueId:          domainIssueId,
 				AuthorId:         tempoWorklog.AuthorAccountId,
 				TimeSpentMinutes: timeSpentMinutes,
-				StartedDate:      nil,
-				LoggedDate:       nil,
+				StartedDate:      &startedDate,
+				LoggedDate:       &loggedDate,
 				Comment:          tempoWorklog.Description,
 			}
 

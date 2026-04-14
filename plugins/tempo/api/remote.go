@@ -18,6 +18,10 @@ limitations under the License.
 package api
 
 import (
+	"net/url"
+	"strconv"
+	"strings"
+
 	"github.com/apache/incubator-devlake/core/errors"
 	"github.com/apache/incubator-devlake/core/plugin"
 	"github.com/apache/incubator-devlake/helpers/pluginhelper/api"
@@ -31,7 +35,7 @@ type TempoRemotePagination struct {
 }
 
 func listTempoRemoteTeams(
-	_ *models.TempoConnection,
+	connection *models.TempoConnection,
 	apiClient plugin.ApiClient,
 	groupId string,
 	page TempoRemotePagination,
@@ -43,49 +47,49 @@ func listTempoRemoteTeams(
 	if page.Limit == 0 {
 		page.Limit = 50
 	}
-	
-	// Fetch teams from Tempo API
-	res, err := apiClient.Get("teams", nil, nil)
+
+	queryParams := url.Values{
+		"offset": {strconv.Itoa(page.Offset)},
+		"limit":  {strconv.Itoa(page.Limit)},
+	}
+
+	res, err := apiClient.Get("teams", queryParams, nil)
 	if err != nil {
 		return nil, nil, errors.Default.Wrap(err, "failed to get teams from Tempo API")
 	}
-	
-	var teams []models.TempoTeamResponse
-	err = api.UnmarshalResponse(res, &teams)
+
+	var response struct {
+		Metadata struct {
+			Count  int `json:"count"`
+			Limit  int `json:"limit"`
+			Offset int `json:"offset"`
+			Total  int `json:"total"`
+		} `json:"metadata"`
+		Results []models.TempoTeamResponse `json:"results"`
+	}
+	err = api.UnmarshalResponse(res, &response)
 	if err != nil {
 		return nil, nil, errors.Default.Wrap(err, "failed to unmarshal teams response")
 	}
-	
-	// Apply pagination
-	start := page.Offset
-	end := start + page.Limit
-	if start >= len(teams) {
-		return nil, nil, nil
-	}
-	if end > len(teams) {
-		end = len(teams)
-	}
-	
-	pagedTeams := teams[start:end]
-	for _, team := range pagedTeams {
+
+	for _, team := range response.Results {
 		children = append(children, dsmodels.DsRemoteApiScopeListEntry[models.TempoTeam]{
 			Type:     api.RAS_ENTRY_TYPE_SCOPE,
-			Id:       team.Id,
+			Id:       strconv.FormatInt(team.Id, 10),
 			ParentId: nil,
 			Name:     team.Name,
 			FullName: team.Name,
-			Data:     team.ConvertToToolLayer(0),
+			Data:     team.ConvertToToolLayer(connection.ID),
 		})
 	}
-	
-	// Check if there are more pages
-	if end < len(teams) {
+
+	if page.Offset+page.Limit < response.Metadata.Total {
 		nextPage = &TempoRemotePagination{
 			Limit:  page.Limit,
 			Offset: page.Offset + page.Limit,
 		}
 	}
-	
+
 	return children, nextPage, nil
 }
 
@@ -112,25 +116,37 @@ func searchTempoRemoteTeams(
 	children []dsmodels.DsRemoteApiScopeListEntry[models.TempoTeam],
 	err errors.Error,
 ) {
-	// Fetch all teams
-	res, err := apiClient.Get("teams", nil, nil)
+	var queryParams url.Values
+	if params.Search != "" {
+		queryParams = url.Values{
+			"name": {params.Search},
+		}
+	}
+
+	res, err := apiClient.Get("teams", queryParams, nil)
 	if err != nil {
 		return nil, errors.Default.Wrap(err, "failed to get teams from Tempo API")
 	}
-	
-	var teams []models.TempoTeamResponse
-	err = api.UnmarshalResponse(res, &teams)
+
+	var response struct {
+		Metadata struct {
+			Count  int `json:"count"`
+			Limit  int `json:"limit"`
+			Offset int `json:"offset"`
+			Total  int `json:"total"`
+		} `json:"metadata"`
+		Results []models.TempoTeamResponse `json:"results"`
+	}
+	err = api.UnmarshalResponse(res, &response)
 	if err != nil {
 		return nil, errors.Default.Wrap(err, "failed to unmarshal teams response")
 	}
-	
-	// Filter by search term
-	search := params.Search
-	for _, team := range teams {
-		if search == "" || containsIgnoreCase(team.Name, search) {
+
+	for _, team := range response.Results {
+		if params.Search == "" || strings.Contains(strings.ToLower(team.Name), strings.ToLower(params.Search)) {
 			children = append(children, dsmodels.DsRemoteApiScopeListEntry[models.TempoTeam]{
 				Type:     api.RAS_ENTRY_TYPE_SCOPE,
-				Id:       team.Id,
+				Id:       strconv.FormatInt(team.Id, 10),
 				ParentId: nil,
 				Name:     team.Name,
 				FullName: team.Name,
@@ -138,8 +154,7 @@ func searchTempoRemoteTeams(
 			})
 		}
 	}
-	
-	// Apply pagination
+
 	start := (params.Page - 1) * params.PageSize
 	end := start + params.PageSize
 	if start >= len(children) {
@@ -148,7 +163,7 @@ func searchTempoRemoteTeams(
 	if end > len(children) {
 		end = len(children)
 	}
-	
+
 	return children[start:end], nil
 }
 
@@ -178,37 +193,4 @@ func SearchRemoteScopes(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutp
 // @Tags plugins/tempo
 func Proxy(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutput, errors.Error) {
 	return raProxy.Proxy(input)
-}
-
-func containsIgnoreCase(s, substr string) bool {
-	s = toLower(s)
-	substr = toLower(substr)
-	return contains(s, substr)
-}
-
-func toLower(s string) string {
-	result := make([]byte, len(s))
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if c >= 'A' && c <= 'Z' {
-			c += 'a' - 'A'
-		}
-		result[i] = c
-	}
-	return string(result)
-}
-
-func contains(s, substr string) bool {
-	if len(substr) == 0 {
-		return true
-	}
-	if len(s) < len(substr) {
-		return false
-	}
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

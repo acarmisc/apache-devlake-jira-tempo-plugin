@@ -41,3 +41,4 @@ coverage.html
 # DevLake specific (when running locally)
 lake.db
 *.db
+.claude/

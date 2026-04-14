@@ -66,7 +66,7 @@ type TempoApiParams struct {
 
 // TempoTeamResponse represents the API response for a team from Tempo API
 type TempoTeamResponse struct {
-	Id      string `json:"id"`
+	Id      int64  `json:"id"`
 	Key     string `json:"key"`
 	Name    string `json:"name"`
 	Summary string `json:"summary"`
@@ -78,7 +78,7 @@ func (r TempoTeamResponse) ConvertToToolLayer(connectionId uint64) *TempoTeam {
 		Scope: common.Scope{
 			ConnectionId: connectionId,
 		},
-		TeamId:  0, // Will be parsed from Id
+		TeamId:  r.Id,
 		Key:     r.Key,
 		Name:    r.Name,
 		Summary: r.Summary,

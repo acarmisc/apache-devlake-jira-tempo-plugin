@@ -39,7 +39,6 @@ type TempoWorklogResponse struct {
 	Issue          struct {
 		Id int64 `json:"id"`
 	} `json:"issue"`
-	IssueKey         string `json:"issueKey"`
 	TimeSpentSeconds int    `json:"timeSpentSeconds"`
 	BillableSeconds  int    `json:"billableSeconds"`
 	StartDate        string `json:"startDate"`

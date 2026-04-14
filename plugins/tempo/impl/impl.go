@@ -159,6 +159,9 @@ func (p Tempo) ApiResources() map[string]map[string]plugin.ApiResourceHandler {
 		"connections/:connectionId/test": {
 			"POST": api.TestExistingConnection,
 		},
+		"connections/:connectionId/proxy/*path": {
+			"GET": api.Proxy,
+		},
 		"connections/:connectionId/teams": {
 			"GET": api.GetTeams,
 		},

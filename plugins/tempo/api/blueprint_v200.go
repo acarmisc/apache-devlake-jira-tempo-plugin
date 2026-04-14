@@ -76,7 +76,7 @@ func makeDataSourcePipelinePlanV200(
 			stage = coreModels.PipelineStage{}
 		}
 
-		scope, scopeConfig := scopeDetail.Scope, scopeDetail.ScopeConfig
+		scope := scopeDetail.Scope
 		// Construct task options for Tempo
 		task, err := api.MakePipelinePlanTask(
 			"tempo",

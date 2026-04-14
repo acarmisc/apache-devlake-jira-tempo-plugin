@@ -22,6 +22,11 @@ import (
 	"github.com/apache/incubator-devlake/plugins/tempo/models"
 )
 
+const (
+	RAW_WORKLOG_TABLE = "tempo_api_worklogs"
+	RAW_TEAM_TABLE    = "tempo_api_teams"
+)
+
 // TempoOptions holds the options for the Tempo plugin
 type TempoOptions struct {
 	ConnectionId  uint64                  `mapstructure:"connectionId" json:"connectionId"`

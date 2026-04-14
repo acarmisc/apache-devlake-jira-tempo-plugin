@@ -20,7 +20,6 @@ package api
 import (
 	"github.com/apache/incubator-devlake/core/errors"
 	"github.com/apache/incubator-devlake/core/plugin"
-	"github.com/apache/incubator-devlake/plugins/tempo/models"
 )
 
 // CreateScopeConfig create scope config for Tempo

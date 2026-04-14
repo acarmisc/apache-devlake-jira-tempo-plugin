@@ -31,8 +31,12 @@ type TempoWorklog struct {
 	IssueKey         string `json:"issueKey" mapstructure:"issueKey" gorm:"type:varchar(255)"`
 	AuthorAccountId  string `json:"authorAccountId" mapstructure:"authorAccountId" gorm:"type:varchar(255)"`
 	TimeSpentSeconds int    `json:"timeSpentSeconds" mapstructure:"timeSpentSeconds"`
-	BilledSeconds    int    `json:"billedSeconds" mapstructure:"billedSeconds"`
+	BillableSeconds  int    `json:"billableSeconds" mapstructure:"billableSeconds"`
 	StartDate        string `json:"startDate" mapstructure:"startDate" gorm:"type:varchar(255)"`
+	StartTime        string `json:"startTime" mapstructure:"startTime" gorm:"type:varchar(255)"`
+	Description      string `json:"description" mapstructure:"description" gorm:"type:varchar(255)"`
+	CreatedAt        string `json:"createdAt" mapstructure:"createdAt" gorm:"type:varchar(255)"`
+	UpdatedAt        string `json:"updatedAt" mapstructure:"updatedAt" gorm:"type:varchar(255)"`
 }
 
 func (TempoWorklog) TableName() string {

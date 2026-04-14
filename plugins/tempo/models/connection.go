@@ -58,7 +58,7 @@ type TempoResponse struct {
 // TempoScopeConfig holds the configuration for a Tempo scope
 type TempoScopeConfig struct {
 	common.ScopeConfig `mapstructure:",squash" json:",inline" gorm:"embedded"`
-	Name               string `json:"name" mapstructure:"name"`
+	Name               string `json:"name" mapstructure:"name" gorm:"type:varchar(255)"`
 }
 
 func (TempoScopeConfig) TableName() string {

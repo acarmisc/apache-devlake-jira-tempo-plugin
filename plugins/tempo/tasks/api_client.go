@@ -32,6 +32,10 @@ const (
 func NewTempoApiClient(
 	taskCtx plugin.TaskContext,
 	connection *models.TempoConnection,
-) (helper.ApiClient, errors.Error) {
-	return helper.NewApiClientFromConnection(taskCtx, connection, nil)
+) (*helper.ApiAsyncClient, errors.Error) {
+	apiClient, err := helper.NewApiClientFromConnection(taskCtx.GetContext(), taskCtx, connection)
+	if err != nil {
+		return nil, err
+	}
+	return helper.CreateAsyncApiClient(taskCtx, apiClient, nil)
 }

@@ -98,7 +98,7 @@ func TestExistingConnection(input *plugin.ApiResourceInput) (*plugin.ApiResource
 		return nil, errors.Convert(err)
 	}
 	// Test connection
-	if result, err := testConnection(context.TODO(), connection.TempoConnection); err != nil {
+	if result, err := testConnection(context.TODO(), *connection); err != nil {
 		return nil, plugin.WrapTestConnectionErrResp(basicRes, err)
 	} else {
 		return &plugin.ApiResourceOutput{Body: result, Status: http.StatusOK}, nil
@@ -204,7 +204,7 @@ func GetTeams(input *plugin.ApiResourceInput) (*plugin.ApiResourceOutput, errors
 	// Convert to tool layer models
 	result := make([]models.TempoTeam, 0, len(teams))
 	for _, t := range teams {
-		result = append(result, t.ConvertToToolLayer(connection.ID))
+		result = append(result, *t.ConvertToToolLayer(connection.ID))
 	}
 
 	return &plugin.ApiResourceOutput{Body: result, Status: http.StatusOK}, nil

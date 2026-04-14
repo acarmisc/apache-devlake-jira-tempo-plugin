@@ -20,7 +20,6 @@ package models
 import (
 	"fmt"
 
-	"github.com/apache/incubator-devlake/core/models"
 	"github.com/apache/incubator-devlake/core/models/common"
 	"github.com/apache/incubator-devlake/core/plugin"
 )
@@ -76,7 +75,7 @@ type TempoTeamResponse struct {
 // ConvertToToolLayer converts the API response to the tool layer model
 func (r TempoTeamResponse) ConvertToToolLayer(connectionId uint64) *TempoTeam {
 	return &TempoTeam{
-		Scope: models.Scope{
+		Scope: common.Scope{
 			ConnectionId: connectionId,
 		},
 		TeamId:  0, // Will be parsed from Id

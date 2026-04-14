@@ -17,7 +17,6 @@ package impl
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/apache/incubator-devlake/core/context"
 	"github.com/apache/incubator-devlake/core/dal"

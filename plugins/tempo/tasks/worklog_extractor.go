@@ -34,19 +34,23 @@ var ExtractWorklogsMeta = plugin.SubTaskMeta{
 	DomainTypes:      []string{plugin.DOMAIN_TYPE_TICKET},
 }
 
+type TempoWorklogAuthor struct {
+	AccountId string `json:"accountId"`
+}
+
 type TempoWorklogResponse struct {
 	TempoWorklogId int64 `json:"tempoWorklogId"`
 	Issue          struct {
 		Id int64 `json:"id"`
 	} `json:"issue"`
-	TimeSpentSeconds int    `json:"timeSpentSeconds"`
-	BillableSeconds  int    `json:"billableSeconds"`
-	StartDate        string `json:"startDate"`
-	StartTime        string `json:"startTime"`
-	Description      string `json:"description"`
-	AuthorAccountId  string `json:"authorAccountId"`
-	CreatedAt        string `json:"createdAt"`
-	UpdatedAt        string `json:"updatedAt"`
+	TimeSpentSeconds int                `json:"timeSpentSeconds"`
+	BillableSeconds  int                `json:"billableSeconds"`
+	StartDate        string             `json:"startDate"`
+	StartTime        string             `json:"startTime"`
+	Description      string             `json:"description"`
+	Author           TempoWorklogAuthor `json:"author"`
+	CreatedAt        string             `json:"createdAt"`
+	UpdatedAt        string             `json:"updatedAt"`
 }
 
 func ExtractWorklogs(taskCtx plugin.SubTaskContext) errors.Error {
@@ -76,7 +80,7 @@ func ExtractWorklogs(taskCtx plugin.SubTaskContext) errors.Error {
 				StartDate:        apiWorklog.StartDate,
 				StartTime:        apiWorklog.StartTime,
 				Description:      apiWorklog.Description,
-				AuthorAccountId:  apiWorklog.AuthorAccountId,
+				AuthorAccountId:  apiWorklog.Author.AccountId,
 				CreatedAt:        apiWorklog.CreatedAt,
 				UpdatedAt:        apiWorklog.UpdatedAt,
 			}

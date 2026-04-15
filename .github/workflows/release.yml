@@ -7,7 +7,7 @@ on:
 
 env:
   DEVLAKE_REPO: apache/incubator-devlake
-  DEFAULT_DEVLAKE_REF: 4931204d
+  DEFAULT_DEVLAKE_REF: refs/pull/8765/head
 
 jobs:
   build-plugin:
@@ -37,6 +37,7 @@ jobs:
           repository: ${{ env.DEVLAKE_REPO }}
           ref: ${{ steps.devlake-ref.outputs.ref }}
           path: devlake-monorepo
+          fetch-depth: 1
 
       - name: Set up Go 1.20.5
         uses: actions/setup-go@v4

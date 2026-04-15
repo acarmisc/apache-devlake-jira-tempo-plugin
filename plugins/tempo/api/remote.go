@@ -150,7 +150,7 @@ func searchTempoRemoteTeams(
 				ParentId: nil,
 				Name:     team.Name,
 				FullName: team.Name,
-				Data:     team.ConvertToToolLayer(0),
+				Data:     team.ConvertToToolLayer(0), // connectionId overridden by PutMultiple handler
 			})
 		}
 	}

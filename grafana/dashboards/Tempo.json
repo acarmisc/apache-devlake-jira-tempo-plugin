@@ -1,395 +1,275 @@
 {
-  "annotations": {
-    "list": [
-      {
-        "builtIn": 1,
-        "datasource": {
-          "type": "grafana",
-          "uid": "-- Grafana --"
-        },
-        "enable": true,
-        "hide": true,
-        "iconColor": "rgba(0, 211, 255, 1)",
-        "name": "Annotations & Alerts",
-        "type": "dashboard"
-      }
-    ]
-  },
-  "description": "Tempo Timesheets - DevLake Plugin",
-  "editable": true,
-  "fiscalYearStartMonth": 0,
-  "graphTooltip": 0,
-  "id": null,
-  "links": [],
-  "liveNow": false,
   "panels": [
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "${datasource}"
+        "uid": "P430005175C4C7810"
       },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisGridShow": false,
-            "axisLabel": "Hours",
-            "axisPlacement": "auto",
-            "axisSoftMax": null,
-            "axisSoftMin": null,
-            "axisWidth": null,
-            "fillOpacity": 80,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineWidth": 1,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
+          "decimals": 1,
           "unit": "h"
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 0
-      },
-      "id": 1,
-      "options": {
-        "barRadius": 0,
-        "barWidth": 0.97,
-        "fullHighlight": false,
-        "groupWidth": 0.7,
-        "legendValues": [],
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "orientation": "vertical",
-        "showValue": "auto",
-        "stacking": "none",
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        },
-        "xTickLabelRotation": 0,
-        "xTickLabelSpacing": 0
-      },
-      "pluginVersion": "10.0.0",
       "targets": [
         {
-          "datasource": {
-            "type": "mysql",
-            "uid": "${datasource}"
-          },
           "format": "table",
-          "rawSql": "SELECT \n  t.name as team,\n  SUM(w.time_spent_minutes)/60 as hours\nFROM _tool_tempo_worklogs w\nJOIN _tool_tempo_teams t ON w.team_id = t.team_id AND w.connection_id = t.connection_id\nWHERE $__timeFilter(w.created_at)\n  AND w.connection_id IN ($connection_id)\n  AND t.name IN ($team)\nGROUP BY t.name\nORDER BY hours DESC",
+          "rawSql": "SELECT ROUND(SUM(time_spent_minutes)/60, 1) AS 'Hours' FROM issue_worklogs WHERE id LIKE 'tempo:%' AND $__timeFilter(started_date) AND author_id IN ($author)",
           "refId": "A"
         }
       ],
-      "title": "Ore per Team",
+      "title": "Total Hours Logged",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "uid": "P430005175C4C7810"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT COUNT(*) AS 'Entries' FROM issue_worklogs WHERE id LIKE 'tempo:%' AND $__timeFilter(started_date) AND author_id IN ($author)",
+          "refId": "A"
+        }
+      ],
+      "title": "Worklog Entries",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "uid": "P430005175C4C7810"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT COUNT(DISTINCT author_id) AS 'Authors' FROM issue_worklogs WHERE id LIKE 'tempo:%' AND $__timeFilter(started_date) AND author_id IN ($author)",
+          "refId": "A"
+        }
+      ],
+      "title": "Distinct Authors",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "uid": "P430005175C4C7810"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT COUNT(DISTINCT issue_id) AS 'Issues' FROM issue_worklogs WHERE id LIKE 'tempo:%' AND $__timeFilter(started_date) AND author_id IN ($author)",
+          "refId": "A"
+        }
+      ],
+      "title": "Distinct Issues",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "uid": "P430005175C4C7810"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 1,
+          "unit": "h"
+        },
+        "overrides": []
+      },
+      "options": {
+        "barWidth": 0.6,
+        "groupWidth": 0.7,
+        "orientation": "horizontal",
+        "stacking": {
+          "mode": "none"
+        },
+        "xTickLabelRotation": 0
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT COALESCE(a.name, iw.author_id) AS author, ROUND(SUM(iw.time_spent_minutes)/60, 1) AS hours FROM issue_worklogs iw LEFT JOIN _tool_jira_accounts a ON iw.author_id = a.account_id AND a.connection_id = 1 WHERE iw.id LIKE 'tempo:%' AND $__timeFilter(iw.started_date) AND iw.author_id IN ($author) GROUP BY iw.author_id, a.name ORDER BY hours DESC",
+          "refId": "A"
+        }
+      ],
+      "title": "Hours by Author",
       "type": "barchart"
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "${datasource}"
+        "uid": "P430005175C4C7810"
       },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
           "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisGridShow": false,
-            "axisLabel": "Hours",
-            "axisPlacement": "auto",
-            "axisSoftMax": null,
-            "axisSoftMin": null,
-            "axisWidth": null,
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
+            "fillOpacity": 30,
+            "lineWidth": 2
           },
           "unit": "h"
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 0
-      },
-      "id": 2,
-      "options": {
-        "legend": {
-          "calcs": [],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "10.0.0",
       "targets": [
         {
-          "datasource": {
-            "type": "mysql",
-            "uid": "${datasource}"
-          },
-          "format": "time_series",
-          "rawSql": "SELECT \n  DATE(started_date) as time,\n  SUM(time_spent_minutes)/60 as hours\nFROM issue_worklogs\nWHERE id LIKE 'tempo:%' \n  AND started_date IS NOT NULL\n  AND $__timeFilter(started_date)\n  AND author_id IN ($author)\nGROUP BY DATE(started_date)\nORDER BY time",
+          "format": "table",
+          "rawSql": "SELECT started_date AS time, ROUND(SUM(time_spent_minutes)/60, 1) AS hours FROM issue_worklogs WHERE id LIKE 'tempo:%' AND $__timeFilter(started_date) AND author_id IN ($author) GROUP BY 1 ORDER BY 1",
           "refId": "A"
         }
       ],
-      "title": "Attività Giornaliera",
+      "title": "Hours per Week",
       "type": "timeseries"
     },
     {
       "datasource": {
-        "type": "mysql",
-        "uid": "${datasource}"
+        "uid": "P430005175C4C7810"
       },
       "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
-            },
-            "inspect": false
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "hours"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "h"
-              }
-            ]
-          }
-        ]
+        "defaults": {},
+        "overrides": []
       },
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 8
-      },
-      "id": 3,
       "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": ["sum"],
-          "show": false
-        },
         "showHeader": true,
         "sortBy": [
           {
             "desc": true,
-            "displayName": "hours"
+            "displayName": "Date"
           }
         ]
       },
-      "pluginVersion": "10.0.0",
       "targets": [
         {
-          "datasource": {
-            "type": "mysql",
-            "uid": "${datasource}"
-          },
           "format": "table",
-          "rawSql": "SELECT \n  author_id,\n  SUM(time_spent_minutes)/60 as hours,\n  COUNT(*) as worklog_count\nFROM issue_worklogs\nWHERE id LIKE 'tempo:%'\n  AND $__timeFilter(logged_date)\n  AND author_id IN ($author)\nGROUP BY author_id\nORDER BY hours DESC",
+          "rawSql": "SELECT DATE_FORMAT(iw.started_date, '%Y-%m-%d') AS 'Date', COALESCE(a.name, iw.author_id) AS 'Author', SUBSTRING_INDEX(iw.issue_id, ':', -1) AS 'Issue', REPLACE(REPLACE(iw.comment, '\r', ''), '\n', ' ') AS 'Description', ROUND(iw.time_spent_minutes/60, 1) AS 'Hours' FROM issue_worklogs iw LEFT JOIN _tool_jira_accounts a ON iw.author_id = a.account_id AND a.connection_id = 1 WHERE iw.id LIKE 'tempo:%' AND $__timeFilter(iw.started_date) AND iw.author_id IN ($author) ORDER BY iw.started_date DESC",
           "refId": "A"
         }
       ],
-      "title": "Distribuzione per Autore",
+      "title": "Worklog Details",
       "type": "table"
+    },
+    {
+      "datasource": {
+        "uid": "P430005175C4C7810"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 1,
+          "unit": "h"
+        },
+        "overrides": []
+      },
+      "options": {
+        "barWidth": 0.6,
+        "groupWidth": 0.7,
+        "orientation": "horizontal"
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT SUBSTRING_INDEX(iw.issue_id, ':', -1) AS issue, ROUND(SUM(iw.time_spent_minutes)/60, 1) AS hours FROM issue_worklogs iw WHERE iw.id LIKE 'tempo:%' AND $__timeFilter(iw.started_date) AND iw.author_id IN ($author) GROUP BY iw.issue_id ORDER BY hours DESC LIMIT 20",
+          "refId": "A"
+        }
+      ],
+      "title": "Top Issues by Hours",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "uid": "P430005175C4C7810"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 1,
+          "unit": "h"
+        },
+        "overrides": []
+      },
+      "options": {
+        "barWidth": 0.6,
+        "groupWidth": 0.7,
+        "orientation": "vertical"
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT DAYNAME(started_date) AS day_of_week, ROUND(SUM(time_spent_minutes)/60, 1) AS hours FROM issue_worklogs WHERE id LIKE 'tempo:%' AND $__timeFilter(started_date) AND author_id IN ($author) GROUP BY DAYOFWEEK(started_date), DAYNAME(started_date) ORDER BY DAYOFWEEK(started_date)",
+          "refId": "A"
+        }
+      ],
+      "title": "Hours by Day of Week",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "uid": "P430005175C4C7810"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 20,
+            "lineWidth": 2
+          },
+          "unit": "h"
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT started_date AS time, COALESCE(a.name, iw.author_id) AS metric, ROUND(SUM(iw.time_spent_minutes)/60, 1) AS hours FROM issue_worklogs iw LEFT JOIN _tool_jira_accounts a ON iw.author_id = a.account_id AND a.connection_id = 1 WHERE iw.id LIKE 'tempo:%' AND $__timeFilter(iw.started_date) AND iw.author_id IN ($author) GROUP BY 1, 2 ORDER BY 1",
+          "refId": "A"
+        }
+      ],
+      "title": "Hours by Author per Week",
+      "type": "timeseries"
     }
   ],
-  "refresh": "1m",
-  "schemaVersion": 38,
-  "style": "dark",
-  "tags": ["tempo", "devlake"],
+  "refresh": "5m",
+  "schemaVersion": 39,
+  "tags": [
+    "tempo",
+    "jira"
+  ],
   "templating": {
     "list": [
       {
+        "allValue": "",
         "current": {
-          "selected": true,
-          "text": "mysql",
-          "value": "mysql"
-        },
-        "hide": 0,
-        "includeAll": false,
-        "label": "Datasource",
-        "multi": false,
-        "name": "datasource",
-        "options": [],
-        "query": "mysql",
-        "refresh": 1,
-        "regex": "",
-        "skipUrlSync": false,
-        "type": "datasource"
-      },
-      {
-        "current": {
-          "selected": true,
           "text": "All",
           "value": "$__all"
         },
         "datasource": {
-          "type": "mysql",
-          "uid": "${datasource}"
+          "uid": "P430005175C4C7810"
         },
-        "definition": "SELECT DISTINCT connection_id FROM _tool_tempo_worklogs ORDER BY connection_id",
-        "hide": 0,
         "includeAll": true,
-        "label": "Connection",
-        "multi": true,
-        "name": "connection_id",
-        "options": [],
-        "query": "SELECT DISTINCT connection_id FROM _tool_tempo_worklogs ORDER BY connection_id",
-        "refresh": 1,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "type": "query"
-      },
-      {
-        "current": {
-          "selected": true,
-          "text": "All",
-          "value": "$__all"
-        },
-        "datasource": {
-          "type": "mysql",
-          "uid": "${datasource}"
-        },
-        "definition": "SELECT DISTINCT name FROM _tool_tempo_teams WHERE connection_id IN ($connection_id) ORDER BY name",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Team",
-        "multi": true,
-        "name": "team",
-        "options": [],
-        "query": "SELECT DISTINCT name FROM _tool_tempo_teams WHERE connection_id IN ($connection_id) ORDER BY name",
-        "refresh": 1,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "type": "query"
-      },
-      {
-        "current": {
-          "selected": true,
-          "text": "All",
-          "value": "$__all"
-        },
-        "datasource": {
-          "type": "mysql",
-          "uid": "${datasource}"
-        },
-        "definition": "SELECT DISTINCT author_id FROM issue_worklogs WHERE id LIKE 'tempo:%' ORDER BY author_id",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Author",
         "multi": true,
         "name": "author",
-        "options": [],
-        "query": "SELECT DISTINCT author_id FROM issue_worklogs WHERE id LIKE 'tempo:%' ORDER BY author_id",
-        "refresh": 1,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
+        "query": "SELECT DISTINCT COALESCE(a.name, iw.author_id) AS display_name, iw.author_id AS value FROM issue_worklogs iw LEFT JOIN _tool_jira_accounts a ON iw.author_id = a.account_id AND a.connection_id = 1 WHERE iw.id LIKE 'tempo:%'",
+        "refresh": 2,
+        "sort": 1,
         "type": "query"
       }
     ]
   },
   "time": {
-    "from": "now-30d",
+    "from": "now-90d",
     "to": "now"
   },
-  "timepicker": {},
   "timezone": "utc",
-  "title": "Tempo",
-  "uid": "tempo",
-  "version": 1
+  "title": "Jira Tempo - work logs"
 }

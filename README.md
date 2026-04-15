@@ -296,6 +296,167 @@ Key Endpoints:
 
 2. **No Tempo-specific UI for scope selection**: The plugin currently uses basic scope handling. For full team selection UI, additional miller-column implementation would be needed.
 
+## Releases
+
+Pre-built artifacts are published as GitHub Releases on tag push (`v*`).
+
+### Download
+
+```bash
+# Get the latest release
+gh release download --repo <this-repo> --pattern "tempo-linux-amd64.so"
+gh release download --repo <this-repo> --pattern "tempo-linux-arm64.so"
+gh release download --repo <this-repo> --pattern "tempo-config-ui.zip"
+gh release download --repo <this-repo> --pattern "Tempo.json"
+```
+
+Or download from the [Releases page](../../releases).
+
+### Install
+
+```bash
+# 1. Copy the .so for your architecture to the DevLake plugin directory
+mkdir -p <devlake>/bin/plugins/tempo/
+cp tempo-linux-amd64.so <devlake>/bin/plugins/tempo/tempo.so
+
+# 2. Extract config-ui files into the DevLake monorepo and rebuild the UI
+unzip tempo-config-ui.zip -d <devlake>/
+
+# 3. Import the Grafana dashboard
+#    Grafana → Dashboards → Import → upload Tempo.json
+```
+
+### Build from source
+
+Requires Go 1.20.5 (exact) and the DevLake monorepo:
+
+```bash
+# Checkout DevLake (use the same ref the release was built against)
+git clone https://github.com/apache/incubator-devlake.git devlake
+cd devlake/backend
+
+# Overlay standalone plugin files
+rsync -av --exclude='tempo.go' /path/to/this-repo/plugins/tempo/ ./plugins/tempo/
+
+# Build (linux/amd64)
+CGO_ENABLED=1 GOOS=linux GOARCH=amd64 CC=gcc \
+  go build -buildmode=plugin -o tempo.so ./plugins/tempo/
+
+# Build (linux/arm64)
+CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC=aarch64-linux-gnu-gcc \
+  go build -buildmode=plugin -o tempo.so ./plugins/tempo/
+```
+
+### Custom DevLake ref
+
+The CI workflow builds against a specific DevLake commit. To build against a different ref, set the `DEVLAKE_REF` environment variable or edit the `DEFAULT_DEVLAKE_REF` in `.github/workflows/release.yml`.
+
+## Building a Custom Docker Image
+
+To create a Docker image that bundles DevLake with the Tempo plugin pre-installed, layer the `.so` file on top of an existing DevLake image.
+
+### Multi-stage Dockerfile (recommended)
+
+```dockerfile
+# Stage 1: build the plugin .so from DevLake monorepo context
+FROM --platform=linux/amd64 golang:1.20.5-bookworm AS builder
+
+RUN apt-get update && apt-get install -y gcc
+
+WORKDIR /app
+# Copy the entire DevLake backend source (must include go.mod, core/, helpers/, etc.)
+COPY devlake-backend/ .
+
+# Overlay the standalone Tempo plugin (preserves tempo.go and other monorepo files)
+COPY plugins/tempo/ ./plugins/tempo/
+
+ENV CGO_ENABLED=1 GOARCH=amd64 GOOS=linux
+RUN go build -buildmode=plugin -o /tempo.so ./plugins/tempo/
+
+# Stage 2: layer tempo.so onto the DevLake base image
+FROM your-devlake-base-image:tag
+
+USER root
+RUN mkdir -p /app/bin/plugins/tempo
+COPY --from=builder /tempo.so /app/bin/plugins/tempo/tempo.so
+RUN chown -R 1010:1010 /app/bin/plugins/tempo
+USER 1010
+```
+
+### Quick build with Docker CLI
+
+```bash
+# 1. Build the plugin (requires DevLake monorepo + standalone plugin overlay)
+#    See "Build from source" section above for rsync instructions.
+CGO_ENABLED=1 go build -buildmode=plugin -o tempo.so ./plugins/tempo/
+
+# 2. Build a custom image
+docker build -t my-devlake:tempo-v0.1.0 -f - . <<EOF
+FROM devlake/devlake:v1.0.0-beta9
+USER root
+RUN mkdir -p /app/bin/plugins/tempo
+COPY tempo.so /app/bin/plugins/tempo/tempo.so
+RUN chown -R 1010:1010 /app/bin/plugins/tempo
+USER 1010
+EOF
+```
+
+### Google Cloud Build example
+
+```yaml
+# cloudbuild.yaml
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'Dockerfile.cloudbuild'
+      - '-t'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/my-repo/devlake:${_IMAGE_TAG}'
+      - '.'
+    dir: 'backend'  # build context must be the DevLake backend directory
+    waitFor: ['-']
+
+images:
+  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/my-repo/devlake:${_IMAGE_TAG}'
+
+substitutions:
+  _IMAGE_TAG: 'tempo-latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
+```
+
+### Config-UI inclusion
+
+To include the Tempo plugin in the DevLake config-UI, register it before building:
+
+```bash
+# In the DevLake monorepo's config-ui source
+cd devlake/config-ui
+unzip /path/to/tempo-config-ui.zip -d src/plugins/register/
+
+# Add the import to src/plugins/register/index.ts
+echo "import { TempoConfig } from './tempo';" >> src/plugins/register/index.ts
+# Then add TempoConfig to the pluginConfigs array in the same file
+
+# Build config-UI
+yarn install && yarn build
+```
+
+### Helm deployment
+
+Override the image reference in your Helm values to point to your custom image:
+
+```yaml
+lake:
+  image:
+    repository: europe-west1-docker.pkg.dev/my-project/my-repo/devlake
+    tag: tempo-v0.1.0
+    pullPolicy: Always
+```
+
 ## References
 
 - [Apache DevLake](https://github.com/apache/incubator-devlake)

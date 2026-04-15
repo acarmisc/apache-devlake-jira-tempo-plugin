@@ -1,0 +1,179 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  DEVLAKE_REPO: apache/incubator-devlake
+  DEFAULT_DEVLAKE_REF: 4931204d
+
+jobs:
+  build-plugin:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goarch: amd64
+            cc: gcc
+            suffix: linux-amd64
+          - goarch: arm64
+            cc: aarch64-linux-gnu-gcc
+            suffix: linux-arm64
+    steps:
+      - name: Checkout standalone repo
+        uses: actions/checkout@v4
+
+      - name: Determine DevLake ref
+        id: devlake-ref
+        run: |
+          REF="${DEVLAKE_REF:-${{ env.DEFAULT_DEVLAKE_REF }}}"
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout DevLake monorepo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.DEVLAKE_REPO }}
+          ref: ${{ steps.devlake-ref.outputs.ref }}
+          path: devlake-monorepo
+
+      - name: Set up Go 1.20.5
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.20.5'
+          cache: false
+
+      - name: Install cross-compilation toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc gcc-aarch64-linux-gnu
+
+      - name: Rsync standalone plugin into monorepo
+        run: |
+          rsync -av \
+            --exclude='tempo.go' \
+            ${{ github.workspace }}/plugins/tempo/ \
+            ${{ github.workspace }}/devlake-monorepo/backend/plugins/tempo/
+
+      - name: Build tempo.so (${{ matrix.suffix }})
+        working-directory: ${{ github.workspace }}/devlake-monorepo/backend
+        env:
+          CGO_ENABLED: 1
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+          CC: ${{ matrix.cc }}
+        run: |
+          go build -buildmode=plugin -o tempo.so ./plugins/tempo/
+
+      - name: Rename artifact
+        run: |
+          mv ${{ github.workspace }}/devlake-monorepo/backend/tempo.so \
+             ${{ github.workspace }}/tempo-${{ matrix.suffix }}.so
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tempo-${{ matrix.suffix }}.so
+          path: tempo-${{ matrix.suffix }}.so
+
+  package-config-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create config-ui zip
+        run: |
+          cd "${{ github.workspace }}"
+          zip -r tempo-config-ui.zip config-ui/src/plugins/register/tempo/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tempo-config-ui.zip
+          path: tempo-config-ui.zip
+
+  package-grafana:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Tempo.json
+          path: grafana/dashboards/Tempo.json
+
+  release:
+    needs: [build-plugin, package-config-ui, package-grafana]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la artifacts/
+
+      - name: Generate release notes
+        id: release-notes
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            NOTES=$(git log "${PREV_TAG}..HEAD" --pretty=format:"- %s (%h)" --no-merges)
+          else
+            NOTES=$(git log --pretty=format:"- %s (%h)" --no-merges -20)
+          fi
+          {
+            echo "notes<<EOF"
+            echo "$NOTES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            ## Changes
+            ${{ steps.release-notes.outputs.notes }}
+
+            ## Assets
+            | File | Description |
+            |------|-------------|
+            | `tempo-linux-amd64.so` | Plugin binary for linux/amd64 |
+            | `tempo-linux-arm64.so` | Plugin binary for linux/arm64 |
+            | `tempo-config-ui.zip` | Config-UI files (extract into DevLake's `config-ui/src/plugins/register/tempo/`) |
+            | `Tempo.json` | Grafana dashboard |
+
+            ## Installation
+            1. Download the `.so` file matching your architecture
+            2. Copy it to your DevLake plugin directory as `tempo.so`:
+               ```bash
+               mkdir -p <devlake>/bin/plugins/tempo/
+               cp tempo-linux-amd64.so <devlake>/bin/plugins/tempo/tempo.so
+               ```
+            3. Extract `tempo-config-ui.zip` into DevLake's config-ui source and rebuild:
+               ```bash
+               unzip tempo-config-ui.zip -d <devlake>/
+               ```
+            4. Import `Tempo.json` into Grafana
+          files: |
+            artifacts/tempo-linux-amd64.so
+            artifacts/tempo-linux-arm64.so
+            artifacts/tempo-config-ui.zip
+            artifacts/Tempo.json
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}

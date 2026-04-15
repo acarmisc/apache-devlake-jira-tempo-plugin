@@ -21,10 +21,9 @@ import (
 	"github.com/apache/incubator-devlake/core/models/common"
 )
 
-// TempoWorklog represents a worklog in Jira Tempo
 type TempoWorklog struct {
-	common.Model     `mapstructure:",squash" gorm:"embedded"`
-	ConnectionId     uint64 `json:"connectionId" mapstructure:"connectionId" gorm:"index"`
+	common.NoPKModel `mapstructure:",squash" gorm:"embedded"`
+	ConnectionId     uint64 `json:"connectionId" mapstructure:"connectionId" gorm:"primaryKey"`
 	TempoWorklogId   int64  `json:"tempoWorklogId" mapstructure:"tempoWorklogId" gorm:"primaryKey"`
 	TeamId           int64  `json:"teamId" mapstructure:"teamId" gorm:"index"`
 	IssueId          int64  `json:"issueId" mapstructure:"issueId" gorm:"index"`

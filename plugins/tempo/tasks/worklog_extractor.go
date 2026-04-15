@@ -62,7 +62,7 @@ func ExtractWorklogs(taskCtx plugin.SubTaskContext) errors.Error {
 		},
 		Extract: func(row *api.RawData) ([]interface{}, errors.Error) {
 			var apiWorklog TempoWorklogResponse
-			err := errors.Convert(json.Unmarshal(row.Input, &apiWorklog))
+			err := errors.Convert(json.Unmarshal(row.Data, &apiWorklog))
 			if err != nil {
 				return nil, err
 			}

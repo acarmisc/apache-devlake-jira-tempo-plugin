@@ -30,7 +30,7 @@ var ExtractTeamsMeta = plugin.SubTaskMeta{
 	Name:             "extract_teams",
 	EntryPoint:       ExtractTeams,
 	EnabledByDefault: true,
-	Description:     "Extract teams from Tempo API",
+	Description:      "Extract teams from Tempo API",
 	DomainTypes:      []string{plugin.DOMAIN_TYPE_TICKET},
 }
 
@@ -56,17 +56,17 @@ func ExtractTeams(taskCtx plugin.SubTaskContext) errors.Error {
 		},
 		Extract: func(row *api.RawData) ([]interface{}, errors.Error) {
 			var apiTeam TempoTeamResponse
-			err := errors.Convert(json.Unmarshal(row.Input, &apiTeam))
+			err := errors.Convert(json.Unmarshal(row.Data, &apiTeam))
 			if err != nil {
 				return nil, err
 			}
 
 			// Transform to tool layer model
 			team := &models.TempoTeam{
-				TeamId:   apiTeam.Id,
-				Key:      apiTeam.Key,
-				Name:     apiTeam.Name,
-				Summary:  apiTeam.Summary,
+				TeamId:  apiTeam.Id,
+				Key:     apiTeam.Key,
+				Name:    apiTeam.Name,
+				Summary: apiTeam.Summary,
 			}
 			team.ConnectionId = data.Options.ConnectionId
 

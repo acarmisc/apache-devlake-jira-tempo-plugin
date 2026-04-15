@@ -33,7 +33,7 @@ type TempoWorklog struct {
 	BillableSeconds  int    `json:"billableSeconds" mapstructure:"billableSeconds"`
 	StartDate        string `json:"startDate" mapstructure:"startDate" gorm:"type:varchar(255)"`
 	StartTime        string `json:"startTime" mapstructure:"startTime" gorm:"type:varchar(255)"`
-	Description      string `json:"description" mapstructure:"description" gorm:"type:varchar(255)"`
+	Description      string `json:"description" mapstructure:"description" gorm:"type:text"`
 	CreatedAt        string `json:"createdAt" mapstructure:"createdAt" gorm:"type:varchar(255)"`
 	UpdatedAt        string `json:"updatedAt" mapstructure:"updatedAt" gorm:"type:varchar(255)"`
 }

@@ -24,7 +24,7 @@ import Icon from './assets/icon.png';
 export const TempoConfig: IPluginConfig = {
   plugin: 'tempo',
   name: 'Tempo',
-  icon: () => <img src={Icon} style={{ width: '24px', height: '24px' }} />,
+  icon: () => <img src={Icon} style={{ width: '100%', height: '100%' }} />,
   sort: 20,
   connection: {
     docLink: 'https://devlake.apache.org/docs/Configuration/Tempo',

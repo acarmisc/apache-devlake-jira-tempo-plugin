@@ -22,6 +22,7 @@ import (
 
 	"github.com/apache/incubator-devlake/core/models/common"
 	"github.com/apache/incubator-devlake/core/plugin"
+	"gorm.io/gorm"
 )
 
 var _ plugin.ToolLayerScope = (*TempoTeam)(nil)
@@ -30,9 +31,16 @@ var _ plugin.ToolLayerScope = (*TempoTeam)(nil)
 type TempoTeam struct {
 	common.Scope `mapstructure:",squash" gorm:"embedded"`
 	TeamId       int64  `json:"teamId" mapstructure:"teamId" validate:"required" gorm:"primaryKey"`
+	Id           int64  `json:"id" gorm:"-" mapstructure:"-"` // JS scope selector compatibility (mirrors TeamId)
 	Key          string `json:"key" mapstructure:"key" gorm:"type:varchar(255)"`
 	Name         string `json:"name" mapstructure:"name" gorm:"type:varchar(255)"`
 	Summary      string `json:"summary" mapstructure:"summary" gorm:"type:varchar(255)"`
+}
+
+// AfterFind populates the virtual Id field after reading from DB
+func (t *TempoTeam) AfterFind(_ *gorm.DB) error {
+	t.Id = t.TeamId
+	return nil
 }
 
 func (t TempoTeam) ScopeId() string {
@@ -79,6 +87,7 @@ func (r TempoTeamResponse) ConvertToToolLayer(connectionId uint64) *TempoTeam {
 			ConnectionId: connectionId,
 		},
 		TeamId:  r.Id,
+		Id:      r.Id,
 		Key:     r.Key,
 		Name:    r.Name,
 		Summary: r.Summary,
